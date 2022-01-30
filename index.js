@@ -119,17 +119,23 @@ const basicCommandLUT = {
 // textbottomtiebar
 
 const checkArg0 = (nm, args) => {
-  if (args.length != 0)
+  if (args.length !== 0)
     throw new Error(`Command ${nm} should not have any argument, but got ${args.length}`);
 };
 
 const checkArg1 = (nm, args) => {
-  if (args.length != 1 ||
-    args[0].kind != 'arg.group' ||
-    args[0].content.length != 1 ||
-    args[0].content[0].kind != 'text.string')
+  if (args.length !== 1 ||
+    args[0].kind !== 'arg.group')
     throw new Error(`Unexpected calling format of command ${nm}`);
-  return args[0].content[0].content;
+  return args[0].content;
+}
+
+const checkArg1s = (nm, args) => {
+  const ast = checkArg1(nm, args);
+  if (ast.length !== 1 ||
+    ast[0].kind !== 'text.string')
+    throw new Error(`Unexpected calling format of command ${nm}`);
+  return ast[0].content;
 }
 
 class TipaTranspiler {
@@ -140,6 +146,7 @@ class TipaTranspiler {
     // string: the prefix to be added (when this.isSuffix === false)
     this.lut = undefined;
     this.isSuffix = false;
+    this.verbose = false;
   }
 
   addSymbol(sym) {
@@ -147,6 +154,9 @@ class TipaTranspiler {
   }
 
   processCommand(nm, args) {
+    if (this.verbose) {
+      console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    }
     let prefix = '', suffix = '';
     switch (typeof this.lut) {
       case 'undefined':
@@ -159,6 +169,7 @@ class TipaTranspiler {
         } else {
           suffix = this.lut;
         }
+        this.isSuffix = false;
         this.lut = undefined;
         break;
       default:
@@ -166,6 +177,9 @@ class TipaTranspiler {
     }
     if (basicCommandLUT[nm]) {
       checkArg0(nm, args);
+      if (this.verbose) {
+        console.error(`processCommand(${nm}, args[${args.length}]) basic: ${prefix} + ${basicCommandLUT[nm]} + ${suffix}`);
+      }
       return prefix + basicCommandLUT[nm] + suffix;
     }
     const s = (lut) => {
@@ -182,12 +196,18 @@ class TipaTranspiler {
       this.lut = Object.fromEntries(Object.entries(modifierLUT[nm]).map(([k, v]) => [k, v + suffix]));
       return prefix;
     }
-    const f = (sf = '', d = '') => prefix + [...checkArg1(nm, args)].map((v) => this.take[v]).join(d) + sf + suffix;
+    const f = (sf = '', d = '') => {
+      const rst = checkArg1(nm, args).map((v) => this.take(v)).join(d);
+      if (this.verbose) {
+        console.error(`processCommand(${nm}, args[${args.length}]) f: ${prefix.length} + ${rst.length} (${d.length}) + ${sf.length} + ${suffix.length}`);
+      }
+      return prefix + rst + sf + suffix;
+    }
     switch (nm) {
       case 'tone':
-        return [...checkArg1(nm, args)].map((v) => toneLUT[v]).join('');
+        return [...checkArg1s(nm, args)].map((v) => toneLUT[v]).join('');
       case 'textsuperscript':
-        return [...checkArg1(nm, args)].map((v) => superLUT[v]).join('');
+        return [...checkArg1s(nm, args)].map((v) => superLUT[v]).join('');
       case 't':
       case 'texttoptiebar':
         return f('', '\u0361');
@@ -331,10 +351,16 @@ class TipaTranspiler {
         return s({
           '': '\u02da',
           '=': '\u0304\u02da',
-          '*': '\u0325',
         });
       case 'textringmacron':
         return f('\u0304\u02da');
+      case 'r*':
+        if (args.length) {
+          return f('\u0325');
+        }
+        return s({
+          '': '\u0325',
+        });
       case 'textsubring':
         return f('\u0325');
 
@@ -345,10 +371,16 @@ class TipaTranspiler {
         return s({
           '': '\u02c7',
           '\'': '\u02c7\u0301',
-          '*': '\u032c',
         });
       case 'textacutewedge':
         return f('\u02c7\u0301');
+      case 'v*':
+        if (args.length) {
+          return f('\u032c');
+        }
+        return s({
+          '': '\u032c',
+        });
       case 'textsubwedge':
         return f('\u032c');
 
@@ -405,17 +437,20 @@ class TipaTranspiler {
   }
 
   processChar(ch) {
+    if (this.verbose) {
+      console.error(`processChar(${ch}) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    }
     let prefix = '', suffix = '';
     switch (typeof this.lut) {
       case 'undefined':
         break;
       case 'object':
-        if (this.lut[nm]) {
-          this.lut = this.lut[nm];
+        if (this.lut[ch]) {
+          this.lut = this.lut[ch];
           return '';
         }
         if (this.lut['']) this.lut = this.lut[''];
-        else throw new Error(`Cannot find LUT entry ${nm}`);
+        else throw new Error(`Cannot find LUT entry ${ch}`);
         // fallthrough
       case 'string':
         if (!this.isSuffix) {
@@ -423,6 +458,7 @@ class TipaTranspiler {
         } else {
           suffix = this.lut;
         }
+        this.isSuffix = false;
         this.lut = undefined;
         break;
     }
@@ -433,7 +469,9 @@ class TipaTranspiler {
         '': '\u02c8',
         '"': '\u02cc',
       };
-      return prefix + ' ' + suffix;
+      if (suffix)
+        return prefix + ' ' + suffix;
+      return prefix;
     }
 
     const sym = basicCharLUT[ch];
@@ -442,16 +480,17 @@ class TipaTranspiler {
     return prefix + sym + suffix;
   }
 
-  processBreak() {
+  processBreak(ch) {
     switch (typeof this.lut) {
       case 'undefined':
-        break;
+        return ch;
       case 'object':
         throw new Error('Break is not allowed here');
       case 'string':
         const s = this.lut;
+        this.isSuffix = false;
         this.lut = undefined;
-        return s + '\n';
+        return s + ch;
       default:
         throw new Error('Internal error', this.lut);
     }
@@ -472,6 +511,7 @@ class TipaTranspiler {
         } else {
           suffix = this.lut;
         }
+        this.isSuffix = false;
         this.lut = undefined;
         break;
       default:
@@ -481,6 +521,9 @@ class TipaTranspiler {
   }
 
   take(ast) {
+    if (this.verbose) {
+      console.error(`take(ast: ${ast.kind}) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    }
     switch (ast.kind) {
       case 'ast.root':
       case 'arg.group':
@@ -491,9 +534,9 @@ class TipaTranspiler {
         return [...ast.content].map((ch) => this.processChar(ch)).join('');
       case 'space':
       case 'softbreak':
-        return '';
+        return this.processBreak(' ');
       case 'parbreak':
-        return this.processBreak();
+        return this.processBreak('\n');
       default:
         throw new Error(`Unknown ast kind ${ast.kind}`);
     }
@@ -503,6 +546,7 @@ class TipaTranspiler {
 const tipa2unicode = (latex) => {
   const ast = latexParser.parse(latex);
   const trans = new TipaTranspiler();
+  trans.verbose = true;
   try {
     return trans.take(ast);
   } catch (e) {
@@ -513,4 +557,10 @@ const tipa2unicode = (latex) => {
 };
 
 const data = fs.readFileSync(0, 'utf-8');
-console.log(tipa2unicode(data));
+const result = tipa2unicode(data);
+console.error([...result].map((ch) => {
+  let s = ch.charCodeAt(0).toString(16);
+  while (s.length < 4) s = '0' + s;
+  return '0x' + s;
+}));
+console.log(result);
