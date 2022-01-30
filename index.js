@@ -134,7 +134,11 @@ const checkArg1 = (nm, args) => {
 
 class TipaTranspiler {
   constructor() {
-    this.lut = null;
+    // undefined: nothing
+    // Array: to be looked up by the following char
+    // string: the suffix to be added (when this.isSuffix === true)
+    // string: the prefix to be added (when this.isSuffix === false)
+    this.lut = undefined;
     this.isSuffix = false;
   }
 
@@ -143,19 +147,42 @@ class TipaTranspiler {
   }
 
   processCommand(nm, args) {
-    if (this.lut)
-      throw new Error(`Unexpected command ${nm} after command \\[:;!*]`);
+    let prefix = '', suffix = '';
+    switch (typeof this.lut) {
+      case 'undefined':
+        break;
+      case 'object':
+        throw new Error('Command is not allowed here');
+      case 'string':
+        if (!this.isSuffix) {
+          prefix = this.lut;
+        } else {
+          suffix = this.lut;
+        }
+        this.lut = undefined;
+        break;
+      default:
+        throw new Error('Internal error', this.lut);
+    }
     if (basicCommandLUT[nm]) {
       checkArg0(nm, args);
-      return basicCommandLUT[nm];
+      return prefix + basicCommandLUT[nm] + suffix;
     }
+    const s = (lut) => {
+      this.isSuffix = true;
+      if (suffix)
+        this.lut = Object.fromEntries(Object.entries(lut).map(([k, v]) => [k, v + suffix]));
+      else
+        this.lut = lut;
+      return prefix;
+    };
     if (modifierLUT[nm]) {
       checkArg0(nm, args);
       this.isSuffix = false;
-      this.lut = modifierLUT[nm];
-      return '';
+      this.lut = Object.fromEntries(Object.entries(modifierLUT[nm]).map(([k, v]) => [k, v + suffix]));
+      return prefix;
     }
-    const f = (d = '') => [...checkArg1(nm, args)].map((v) => this.take[v]).join(d);
+    const f = (sf = '', d = '') => prefix + [...checkArg1(nm, args)].map((v) => this.take[v]).join(d) + sf + suffix;
     switch (nm) {
       case 'tone':
         return [...checkArg1(nm, args)].map((v) => toneLUT[v]).join('');
@@ -163,13 +190,12 @@ class TipaTranspiler {
         return [...checkArg1(nm, args)].map((v) => superLUT[v]).join('');
       case 't':
       case 'texttoptiebar':
-        return f('\u0361');
+        return f('', '\u0361');
 
       // Table 3.3: Examples of the accent prefix \|
       case '|':
         checkArg0(nm, args);
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '[': '\u032a',
           ']': '\u033a',
           '(': '\u02d2',
@@ -184,217 +210,194 @@ class TipaTranspiler {
           'w': '\u032b',
           'm': '\u033c',
           '~': '\u0334',
-        };
-        return;
+        });
       case 'textsubbridge':
-        return f() + '\u032a';
+        return f('\u032a');
       case 'textinvsubbridge':
-        return f() + '\u033a';
+        return f('\u033a');
       case 'textsubrhalfring':
-        return f() + '\u02d2';
+        return f('\u02d2');
       case 'textsublhalfring':
-        return f() + '\u02d3';
+        return f('\u02d3');
       case 'textroundcap':
-        return f() + '\u0311';
+        return f('\u0311');
       case 'textsubplus':
-        return f() + '\u031f';
+        return f('\u031f');
       case 'textraising':
-        return f() + '\u031d';
+        return f('\u031d');
       case 'textlowering':
-        return f() + '\u031e';
+        return f('\u031e');
       case 'textadvancing':
-        return f() + '\u0318';
+        return f('\u0318');
       case 'textretracting':
-        return f() + '\u0319';
+        return f('\u0319');
       case 'textovercross':
-        return f() + '\u033d';
+        return f('\u033d');
       case 'textsubw':
-        return f() + '\u032b';
+        return f('\u032b');
       case 'textseagull':
-        return f() + '\u033c';
+        return f('\u033c');
       case 'textsuperimposetilde':
-        return f() + '\u0334';
+        return f('\u0334');
 
       case '~':
         if (arg.length) {
-          return f() + '\u0303';
+          return f('\u0303');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u0303',
           '.': '\u0307\u0303',
           '*': '\u0330',
-        };
-        return '';
+        });
       case 'texttildedot':
-        return f() + '\u0307\u0303';
+        return f('\u0307\u0303');
       case 'textsubtilde':
-        return f() + '\u0330';
+        return f('\u0330');
 
       case '"':
         if (arg.length) {
-          return f() + '\u0308';
+          return f('\u0308');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u0308',
           '*': '\u0324',
-        };
-        return '';
+        });
       case 'textsubumlaut':
-        return f() + '\u0324';
+        return f('\u0324');
 
       case '^':
         if (arg.length) {
-          return f() + '\u0302';
+          return f('\u0302');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u0302',
           '*': '\u032d',
           '.': '\u0307\u0302',
-        };
-        return '';
+        });
       case 'textsubcircum':
-        return f() + '\u032d';
+        return f('\u032d');
       case 'textcircumdot':
         return f() + '\u0307\u0302';
 
       case '\'':
         if (arg.length) {
-          return f() + '\u0301';
+          return f('\u0301');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u0301',
           '*': '\u02cf', // \u0317
           '=': '\u0304\u0301',
           '.': '\u0307\u0301',
-        };
-        return '';
+        });
       case 'textsubacute':
-        return f() + '\u02cf'; // \u0317
+        return f('\u02cf'); // \u0317
       case 'textacutemacron':
-        return f() + '\u0304\u0301';
+        return f('\u0304\u0301');
       case 'textdotacute':
-        return f() + '\u0307\u0301';
+        return f('\u0307\u0301');
 
       case '`':
         if (arg.length) {
-          return f() + '\u0300';
+          return f('\u0300');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u0300',
           '*': '\u02ce', // \u0316
           '.': '\u0300\u0307',
-        };
-        return '';
+        });
       case 'textsubgrave':
-        return f() + '\u02ce'; // \u0316
+        return f('\u02ce'); // \u0316
       case 'textgravemacron':
-        return f() + '\u0304\u0300';
+        return f('\u0304\u0300');
       case 'textgravedot':
-        return f() + '\u0300\u0307';
+        return f('\u0300\u0307');
 
       case 'H':
-        return f() + '\u02dd';
+        return f('\u02dd');
       case 'H*':
         if (args.length) {
-          return f() + '\u030f';
+          return f('\u030f');
         }
-        this.isSuffix = true;
-        this.lut = {
-          '': '\u030f';
-        };
-        return '';
+        return s({
+          '': '\u030f',
+        });
       case 'textdoublegrave':
-        return f() + '\u030f';
+        return f('\u030f');
 
       case 'r':
         if (args.length) {
-          return f() + '\u02da';
+          return f('\u02da');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u02da',
           '=': '\u0304\u02da',
           '*': '\u0325',
-        };
-        return '';
+        });
       case 'textringmacron':
-        return f() + '\u0304\u02da';
+        return f('\u0304\u02da');
       case 'textsubring':
-        return f() + '\u0325';
+        return f('\u0325');
 
       case 'v':
         if (args.length) {
-          return f() + '\u02c7';
+          return f('\u02c7');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u02c7',
           '\'': '\u02c7\u0301',
           '*': '\u032c',
-        };
-        return '';
+        });
       case 'textacutewedge':
-        return f() + '\u02c7\u0301';
+        return f('\u02c7\u0301');
       case 'textsubwedge':
-        return f() + '\u032c';
+        return f('\u032c');
 
       case 'u':
         if (args.length) {
-          return f() + '\u02d8';
+          return f('\u02d8');
         }
-        this.isSuffix = true;
-        this.lut = {
+        return s({
           '': '\u02d8',
           '=': '\u0304\u02d8',
-        };
-        return '';
+        });
       case 'textbrevemacron':
-        return f() + '\u0304\u02d8';
+        return f('\u0304\u02d8');
 
       case '=':
         if (args.length) {
-          return f() + '\u02c9';
+          return f('\u02c9');
         }
-        this.isSuffix = true;
-        this.lut = {
-          '': '\u02c9';
-          '*': '\u0320';
-        };
-        return '';
+        return s({
+          '': '\u02c9',
+          '*': '\u0320',
+        });
       case 'textsubbar':
-        return f() + '\u0320';
+        return f('\u0320');
 
       case '.':
         if (args.length) {
-          return f() + '\u02d9';
+          return f('\u02d9');
         }
-        this.isSuffix = true;
-        this.lut = {
-          '': '\u02d9';
-          '*': '\u0323';
+        return s({
+          '': '\u02d9',
+          '*': '\u0323',
           '\'': '\u0307\u0301',
-        };
-        return '';
+        });
       case 'textsubdot':
-        return f() + '\u0323';
+        return f('\u0323');
 
       case 'c':
-        return f() + '\u0327';
+        return f('\u0327');
       case 'k':
       case 'textpolhook':
-        return f() + '\u02db';
+        return f('\u02db');
       case 'textsubsquare':
-        return f() + '\u033b';
+        return f('\u033b');
       case 'textsubarch':
-        return f() + '\u032f';
+        return f('\u032f');
       case 's':
       case 'textsyllabic':
-        return f() + '\u0329';
+        return f('\u0329');
 
       default:
         throw new Error(`Unknown command ${nm}`);
@@ -402,40 +405,86 @@ class TipaTranspiler {
   }
 
   processChar(ch) {
-    let prefix = '';
-    if (this.lut === '"') {
-      this.lut = null;
-      if (ch === '"') return '\u02cc';
-      else prefix = '\u02c8';
-    } else if (ch === '"') {
-      this.lut = ch; // Assumption: stress will not occur at the end of a sequence
-      return '';
+    let prefix = '', suffix = '';
+    switch (typeof this.lut) {
+      case 'undefined':
+        break;
+      case 'object':
+        if (this.lut[nm]) {
+          this.lut = this.lut[nm];
+          return '';
+        }
+        if (this.lut['']) this.lut = this.lut[''];
+        else throw new Error(`Cannot find LUT entry ${nm}`);
+        // fallthrough
+      case 'string':
+        if (!this.isSuffix) {
+          prefix = this.lut;
+        } else {
+          suffix = this.lut;
+        }
+        this.lut = undefined;
+        break;
     }
-    if (this.lut) {
-      const sym = this.lut[ch];
-      this.lut = '';
-      if (!sym)
-        throw new Error(`Cannot find modified character ${ch}`);
-      return prefix + sym;
-    } else {
-      const sym = basicCharLUT[ch];
-      if (!sym)
-        throw new Error(`Cannot find shortcut character ${ch}`);
-      return prefix + sym;
+
+    if (ch === '"') {
+      this.isSuffix = false;
+      this.lut = {
+        '': '\u02c8',
+        '"': '\u02cc',
+      };
+      return prefix + ' ' + suffix;
     }
+
+    const sym = basicCharLUT[ch];
+    if (!sym)
+      throw new Error(`Cannot find shortcut character ${ch}`);
+    return prefix + sym + suffix;
   }
 
   processBreak() {
-    if (this.lut)
-      throw new Error(`Break is not allowed here`);
-    return '\n';
+    switch (typeof this.lut) {
+      case 'undefined':
+        break;
+      case 'object':
+        throw new Error('Break is not allowed here');
+      case 'string':
+        const s = this.lut;
+        this.lut = undefined;
+        return s + '\n';
+      default:
+        throw new Error('Internal error', this.lut);
+    }
+  }
+
+  processGroup(ast) {
+    let prefix = '', suffix = '';
+    switch (typeof this.lut) {
+      case 'undefined':
+        break;
+      case 'object':
+        if (this.lut['']) this.lut = this.lut[''];
+        else throw new Error('Group is not allowed here, as a char is required by LUT');
+        // fallthrough
+      case 'string':
+        if (!this.isSuffix) {
+          prefix = this.lut;
+        } else {
+          suffix = this.lut;
+        }
+        this.lut = undefined;
+        break;
+      default:
+        throw new Error('Internal error', this.lut);
+    }
+    return prefix + ast.content.map((el) => this.take(el)).join('') + suffix;
   }
 
   take(ast) {
     switch (ast.kind) {
       case 'ast.root':
       case 'arg.group':
-        return ast.content.map((el) => this.take(el)).join('');
+        return this.processGroup(ast);
       case 'command':
         return this.processCommand(ast.name, ast.args);
       case 'text.string':
@@ -454,7 +503,13 @@ class TipaTranspiler {
 const tipa2unicode = (latex) => {
   const ast = latexParser.parse(latex);
   const trans = new TipaTranspiler();
-  return trans.take(ast);
+  try {
+    return trans.take(ast);
+  } catch (e) {
+    console.error(`Erorr ${e.message} when parsing the following AST:`);
+    console.error(JSON.stringify(ast, null, 2));
+    console.error(e);
+  }
 };
 
 const data = fs.readFileSync(0, 'utf-8');
