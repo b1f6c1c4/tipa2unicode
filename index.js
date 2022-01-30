@@ -353,14 +353,14 @@ class TipaTranspiler {
 
       case 'r':
         if (args.length) {
-          return f('\u02da');
+          return f('\u030a');
         }
         return s({
-          '': '\u02da',
-          '=': '\u0304\u02da',
+          '': '\u030a',
+          '=': '\u0304\u030a',
         });
       case 'textringmacron':
-        return f('\u0304\u02da');
+        return f('\u0304\u030a');
       case 'r*':
         if (args.length) {
           return f('\u0325');
@@ -549,6 +549,8 @@ class TipaTranspiler {
         return this.processCommand(ast.name, ast.args);
       case 'text.string':
         return [...ast.content].map((ch) => this.processChar(ch)).join('');
+      case 'activeCharacter':
+        return this.processChar('~');
       case 'space':
       case 'softbreak':
         return this.processBreak(' ');
@@ -564,11 +566,11 @@ module.exports = (latex, debug) => {
   const ast = latexParser.parse(latex);
   const trans = new TipaTranspiler(debug);
   try {
-    return trans.take(ast);
+    return trans.take(ast)
   } catch (e) {
     if (debug) /* istanbul ignore next */ {
       console.error(`Erorr ${e.message} when parsing the following AST:`);
-      // console.error(JSON.stringify(ast, null, 2));
+      console.error(JSON.stringify(ast, null, 2));
       console.error(e);
     }
     throw e;

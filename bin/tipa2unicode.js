@@ -44,7 +44,7 @@ const irs = tipa2unicode(data, argv.debug);
 
 if (argv.debug) {
   const debug = require('../debug.js');
-  console.error(debug(irs));
+  console.error('Final result:', debug(irs));
 }
 
 let res;
