@@ -1,15 +1,34 @@
 {
   "name": "tipa2unicode",
   "version": "0.0.0",
-  "description": "Convert TIPA to Unicode and back",
+  "description": "Convert LaTeX/TIPA to Unicode IPA",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "bin": {
+    "tipa2unicode": "./bin/tipa2unicode.js"
   },
-  "author": "",
+  "targets": {
+    "main": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/b1f6c1c4/tipa2unicode.git"
+  },
+  "keywords": [
+    "phonetics",
+    "phonology",
+    "IPA",
+    "LaTeX"
+  ],
+  "author": "b1f6c1c4 <b1f6c1c4@gmail.com>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/b1f6c1c4/tipa2unicode/issues"
+  },
+  "homepage": "https://github.com/b1f6c1c4/tipa2unicode#readme",
   "dependencies": {
+    "htmlencode": "0.0.4",
     "latex-utensils": "^4.1.0",
-    "unicode": "^14.0.0"
+    "unicode": "^14.0.0",
+    "yargs": "^16.2.0"
   }
 }

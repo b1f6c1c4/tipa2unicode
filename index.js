@@ -1,6 +1,4 @@
 const { latexParser } = require('latex-utensils');
-const fs = require('fs');
-const unicode = require('unicode/category');
 
 const modifierLUT = {
   [':']: {
@@ -63,18 +61,21 @@ const superLUT = {
 
 const basicCharLUT = {
   // Table 2.2: TIPA shortcut characters
-  [':']: '\u02d0', [';']: '\u02d1', /* ['"']: '\u02c8', */
-  ['0']: '\u0289', ['1']: '\u0268', ['2']: '\u028c', ['3']: '\u025c', ['4']: '\u0265', ['5']: '\u0250', ['6']: '\u0252', ['7']: '\u0264', ['8']: '\u0275', ['9']: '\u0258',
-  ['@']: '\u0259', ['A']: '\u0251', ['B']: '\u03b2', ['C']: '\u0255', ['D']: '\u00f0', ['E']: '\u025b', ['F']: '\u0278', ['G']: '\u0263', ['H']: '\u0266', ['I']: '\u026a',
-  ['J']: '\u029d', ['K']: '\u0281', ['L']: '\u028e', ['M']: '\u0271', ['N']: '\u014b', ['O']: '\u0254', ['P']: '\u0294', ['Q']: '\u0295', ['R']: '\u027e', ['S']: '\u0283',
-  ['T']: '\u03b8', ['U']: '\u028a', ['V']: '\u028b', ['W']: '\u026f', ['X']: '\u03c7', ['Y']: '\u028f', ['Z']: '\u0292', ['|']: '\u01c0', ['!']: '\u01c3',
+  ':': '\u02d0', ';': '\u02d1', /* '"': '\u02c8', */
+  '0': '\u0289', '1': '\u0268', '2': '\u028c', '3': '\u025c', '4': '\u0265', '5': '\u0250', '6': '\u0252', '7': '\u0264', '8': '\u0275', '9': '\u0258',
+  '@': '\u0259', 'A': '\u0251', 'B': '\u03b2', 'C': '\u0255', 'D': '\u00f0', 'E': '\u025b', 'F': '\u0278', 'G': '\u0263', 'H': '\u0266', 'I': '\u026a',
+  'J': '\u029d', 'K': '\u0281', 'L': '\u028e', 'M': '\u0271', 'N': '\u014b', 'O': '\u0254', 'P': '\u0294', 'Q': '\u0295', 'R': '\u027e', 'S': '\u0283',
+  'T': '\u03b8', 'U': '\u028a', 'V': '\u028b', 'W': '\u026f', 'X': '\u03c7', 'Y': '\u028f', 'Z': '\u0292', '|': '\u01c0', '!': '\u01c3',
   // Vowels and Consonants
-  ['a']: 'a', ['b']: 'b', ['c']: 'c', ['d']: 'd', ['e']: 'e', ['f']: 'f', ['g']: '\u0261', ['h']: 'h', ['i']: 'i',
-  ['j']: 'j', ['k']: 'k', ['l']: 'l', ['m']: 'm', ['n']: 'n', ['o']: 'o', ['p']: 'p', ['q']: 'q', ['r']: 'r',
-  ['s']: 's', ['t']: 't', ['u']: 'u', ['v']: 'v', ['w']: 'w', ['x']: 'x', ['y']: 'y', ['z']: 'z',
+  'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd', 'e': 'e', 'f': 'f', 'g': '\u0261', 'h': 'h', 'i': 'i',
+  'j': 'j', 'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'o', 'p': 'p', 'q': 'q', 'r': 'r',
+  's': 's', 't': 't', 'u': 'u', 'v': 'v', 'w': 'w', 'x': 'x', 'y': 'y', 'z': 'z',
   // Accents and Diacritics
-  ['\'']: '\u02bc',
-  ['.']: '.',
+  '\'': '\u02bc',
+  '.': '.',
+  //  Punctuation marks
+  '!': '!', '\'': '\'', '(': '(', ')': ')', '*': '*', '+': '+', ',': ',', '-': '-', '.': '.',
+  '/': '/', '=': '=', '?': '?', '[': '[', ']': ']', '`': '`',
 };
 
 const basicCommandLUT = {
@@ -115,10 +116,6 @@ const basicCommandLUT = {
   textrhoticity: '\u02de',
 };
 
-
-// TODO:
-// textbottomtiebar
-
 const checkArg0 = (nm, args) => {
   if (args.length !== 0 &&
     !(args.length === 1 && args[0].kind === 'arg.group' && args[0].content.length === 0))
@@ -140,15 +137,23 @@ const checkArg1s = (nm, args) => {
   return ast[0].content;
 }
 
+const formatAST = (ast) => {
+  if (ast.location)
+    return `${ast.kind}/L${ast.location.start.line}C${ast.location.start.column}`;
+  return ast.kind;
+}
+
 class TipaTranspiler {
-  constructor() {
+  constructor(debug) {
     // undefined: nothing
     // Array: to be looked up by the following char
     // string: the suffix to be added (when this.isSuffix === true)
     // string: the prefix to be added (when this.isSuffix === false)
     this.lut = undefined;
     this.isSuffix = false;
-    this.verbose = false;
+    if (debug) {
+      this.debug = require('./debug.js');
+    }
   }
 
   addSymbol(sym) {
@@ -156,15 +161,18 @@ class TipaTranspiler {
   }
 
   processCommand(nm, args) {
-    if (this.verbose) {
-      console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    if (nm === 'relax') return '';
+    if (this.debug) {
+      console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     let prefix = '', suffix = '';
     switch (typeof this.lut) {
       case 'undefined':
         break;
       case 'object':
-        throw new Error('Command is not allowed here');
+        if (this.lut['']) this.lut = this.lut[''];
+        else throw new Error('Command is not allowed here, as a char is required by LUT');
+        // fallthrough
       case 'string':
         if (!this.isSuffix) {
           prefix = this.lut;
@@ -179,8 +187,8 @@ class TipaTranspiler {
     }
     if (basicCommandLUT[nm]) {
       checkArg0(nm, args);
-      if (this.verbose) {
-        console.error(`processCommand(${nm}, args[${args.length}]) basic: ${prefix} + ${basicCommandLUT[nm]} + ${suffix}`);
+      if (this.debug) {
+        console.error(`processCommand(${nm}, args[${args.length}]) basic:`, this.debug(prefix), this.debug(basicCommandLUT[nm]), this.debug(suffix));
       }
       return prefix + basicCommandLUT[nm] + suffix;
     }
@@ -200,8 +208,8 @@ class TipaTranspiler {
     }
     const f = (sf = '', d = '') => {
       const rst = checkArg1(nm, args).map((v) => this.take(v)).join(d);
-      if (this.verbose) {
-        console.error(`processCommand(${nm}, args[${args.length}]) f: ${prefix.length} + ${rst.length} (${d.length}) + ${sf.length} + ${suffix.length}`);
+      if (this.debug) {
+        console.error(`processCommand(${nm}, args[${args.length}]) f:`, this.debug(prefix), this.debug(rst), this.debug(sf), this.debug(suffix));
       }
       return prefix + rst + sf + suffix;
     }
@@ -426,6 +434,10 @@ class TipaTranspiler {
       case 'k':
       case 'textpolhook':
         return f('\u02db');
+      case 'textvbaraccent':
+        return f('\u030d');
+      case 'textdoublevbaraccent':
+        return f('\u030e');
       case 'textsubsquare':
         return f('\u033b');
       case 'textsubarch':
@@ -435,13 +447,13 @@ class TipaTranspiler {
         return f('\u0329');
 
       default:
-        throw new Error(`Unknown command ${nm}`);
+        throw new Error(`Unknown LaTeX command \\${nm}`);
     }
   }
 
   processChar(ch) {
-    if (this.verbose) {
-      console.error(`processChar(${ch}) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    if (this.debug) {
+      console.error(`processChar(${ch}) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     let prefix = '', suffix = '';
     switch (typeof this.lut) {
@@ -530,8 +542,8 @@ class TipaTranspiler {
   }
 
   take(ast) {
-    if (this.verbose) {
-      console.error(`take(ast: ${ast.kind}) isSuffix = ${this.isSuffix} lut =`, this.lut);
+    if (this.debug) {
+      console.error(`take(ast: ${formatAST(ast)}) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     switch (ast.kind) {
       case 'ast.root':
@@ -552,26 +564,17 @@ class TipaTranspiler {
   }
 };
 
-const tipa2unicode = (latex) => {
+module.exports = (latex, debug) => {
   const ast = latexParser.parse(latex);
-  const trans = new TipaTranspiler();
-  trans.verbose = true;
+  const trans = new TipaTranspiler(debug);
   try {
     return trans.take(ast);
   } catch (e) {
-    console.error(`Erorr ${e.message} when parsing the following AST:`);
-    console.error(JSON.stringify(ast, null, 2));
-    console.error(e);
+    if (debug) {
+      console.error(`Erorr ${e.message} when parsing the following AST:`);
+      // console.error(JSON.stringify(ast, null, 2));
+      console.error(e);
+    }
+    throw e;
   }
 };
-
-const data = fs.readFileSync(0, 'utf-8');
-const result = tipa2unicode(data);
-console.error([...result].map((ch) => {
-  const code = ch.charCodeAt(0);
-  const desc = Object.entries(unicode).find(([ty, cat]) => cat[code])[1][code].name;
-  let s = code.toString(16);
-  while (s.length < 4) s = '0' + s;
-  return ['0x' + s, desc];
-}));
-console.log(result);
