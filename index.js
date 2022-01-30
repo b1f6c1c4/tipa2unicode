@@ -137,7 +137,7 @@ const checkArg1s = (nm, args) => {
   return ast[0].content;
 }
 
-const formatAST = (ast) => {
+const formatAST = /* istanbul ignore next */ (ast) => {
   if (ast.location)
     return `${ast.kind}/L${ast.location.start.line}C${ast.location.start.column}`;
   return ast.kind;
@@ -151,18 +151,14 @@ class TipaTranspiler {
     // string: the prefix to be added (when this.isSuffix === false)
     this.lut = undefined;
     this.isSuffix = false;
-    if (debug) {
+    if (debug) /* istanbul ignore next */ {
       this.debug = require('./debug.js');
     }
   }
 
-  addSymbol(sym) {
-    this.result += sym;
-  }
-
   processCommand(nm, args) {
     if (nm === 'relax') return '';
-    if (this.debug) {
+    if (this.debug) /* istanbul ignore next */ {
       console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     let prefix = '', suffix = '';
@@ -187,7 +183,7 @@ class TipaTranspiler {
     }
     if (basicCommandLUT[nm]) {
       checkArg0(nm, args);
-      if (this.debug) {
+      if (this.debug) /* istanbul ignore next */ {
         console.error(`processCommand(${nm}, args[${args.length}]) basic:`, this.debug(prefix), this.debug(basicCommandLUT[nm]), this.debug(suffix));
       }
       return prefix + basicCommandLUT[nm] + suffix;
@@ -208,7 +204,7 @@ class TipaTranspiler {
     }
     const f = (sf = '', d = '') => {
       const rst = checkArg1(nm, args).map((v) => this.take(v)).join(d);
-      if (this.debug) {
+      if (this.debug) /* istanbul ignore next */ {
         console.error(`processCommand(${nm}, args[${args.length}]) f:`, this.debug(prefix), this.debug(rst), this.debug(sf), this.debug(suffix));
       }
       return prefix + rst + sf + suffix;
@@ -452,7 +448,7 @@ class TipaTranspiler {
   }
 
   processChar(ch) {
-    if (this.debug) {
+    if (this.debug) /* istanbul ignore next */ {
       console.error(`processChar(${ch}) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     let prefix = '', suffix = '';
@@ -542,7 +538,7 @@ class TipaTranspiler {
   }
 
   take(ast) {
-    if (this.debug) {
+    if (this.debug) /* istanbul ignore next */ {
       console.error(`take(ast: ${formatAST(ast)}) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
     switch (ast.kind) {
@@ -570,7 +566,7 @@ module.exports = (latex, debug) => {
   try {
     return trans.take(ast);
   } catch (e) {
-    if (debug) {
+    if (debug) /* istanbul ignore next */ {
       console.error(`Erorr ${e.message} when parsing the following AST:`);
       // console.error(JSON.stringify(ast, null, 2));
       console.error(e);
