@@ -9,6 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "latex-utensils": "^4.1.0"
+    "latex-utensils": "^4.1.0",
+    "unicode": "^14.0.0"
   }
 }

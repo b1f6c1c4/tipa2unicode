@@ -1,5 +1,6 @@
 const { latexParser } = require('latex-utensils');
 const fs = require('fs');
+const unicode = require('unicode/category');
 
 const modifierLUT = {
   [':']: {
@@ -119,7 +120,8 @@ const basicCommandLUT = {
 // textbottomtiebar
 
 const checkArg0 = (nm, args) => {
-  if (args.length !== 0)
+  if (args.length !== 0 &&
+    !(args.length === 1 && args[0].kind === 'arg.group' && args[0].content.length === 0))
     throw new Error(`Command ${nm} should not have any argument, but got ${args.length}`);
 };
 
@@ -206,6 +208,7 @@ class TipaTranspiler {
     switch (nm) {
       case 'tone':
         return [...checkArg1s(nm, args)].map((v) => toneLUT[v]).join('');
+      case 'super':
       case 'textsuperscript':
         return [...checkArg1s(nm, args)].map((v) => superLUT[v]).join('');
       case 't':
@@ -261,7 +264,7 @@ class TipaTranspiler {
         return f('\u0334');
 
       case '~':
-        if (arg.length) {
+        if (args.length) {
           return f('\u0303');
         }
         return s({
@@ -275,7 +278,7 @@ class TipaTranspiler {
         return f('\u0330');
 
       case '"':
-        if (arg.length) {
+        if (args.length) {
           return f('\u0308');
         }
         return s({
@@ -286,7 +289,7 @@ class TipaTranspiler {
         return f('\u0324');
 
       case '^':
-        if (arg.length) {
+        if (args.length) {
           return f('\u0302');
         }
         return s({
@@ -300,7 +303,7 @@ class TipaTranspiler {
         return f() + '\u0307\u0302';
 
       case '\'':
-        if (arg.length) {
+        if (args.length) {
           return f('\u0301');
         }
         return s({
@@ -317,7 +320,7 @@ class TipaTranspiler {
         return f('\u0307\u0301');
 
       case '`':
-        if (arg.length) {
+        if (args.length) {
           return f('\u0300');
         }
         return s({
@@ -446,8 +449,14 @@ class TipaTranspiler {
         break;
       case 'object':
         if (this.lut[ch]) {
-          this.lut = this.lut[ch];
-          return '';
+          const s = this.lut[ch];
+          if (!this.isSuffix) {
+            this.lut = undefined;
+            return s;
+          } else {
+            this.lut = s;
+            return '';
+          }
         }
         if (this.lut['']) this.lut = this.lut[''];
         else throw new Error(`Cannot find LUT entry ${ch}`);
@@ -559,8 +568,10 @@ const tipa2unicode = (latex) => {
 const data = fs.readFileSync(0, 'utf-8');
 const result = tipa2unicode(data);
 console.error([...result].map((ch) => {
-  let s = ch.charCodeAt(0).toString(16);
+  const code = ch.charCodeAt(0);
+  const desc = Object.entries(unicode).find(([ty, cat]) => cat[code])[1][code].name;
+  let s = code.toString(16);
   while (s.length < 4) s = '0' + s;
-  return '0x' + s;
+  return ['0x' + s, desc];
 }));
 console.log(result);
