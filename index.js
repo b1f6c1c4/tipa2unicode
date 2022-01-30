@@ -6,6 +6,7 @@ const modifierLUT = {
     d: '\u0256',
     l: '\u026d',
     n: '\u0273',
+    r: '\u027d',
     R: '\u027b',
     s: '\u0282',
     t: '\u0288',
@@ -28,17 +29,16 @@ const modifierLUT = {
     j: '\u0284',
     o: '\u0298',
   },
-  ['c']: {
-    c: '\u00e7',
-  },
-  ['|']: {
-    ['~']: {
-      l: '\u026b',
-    },
-  },
   ['*']: {
+    k: '\u029e',
     r: '\u0279',
+    t: '\u0287',
     w: '\u028d',
+    j: '\u025f',
+    n: '\u0272',
+    h: '\u0127',
+    l: '\u026c',
+    z: '\u026e',
   },
 };
 
@@ -66,6 +66,7 @@ const basicCommandLUT = {
   textcrh: '\u0127', texthth: '\u0266', texththeng: '\u0267', textturnh: '\u0265', textsch: '\u029c',
   textbari: '\u0268', textsci: '\u026a',
   textctj: '\u029d', textbardotlessj: '\u025f', textObardotlessj: '\u025f', texthtbardotlessj: '\u0284', texthtbardotlessjvar: '\u0284',
+  textturnk: '\u029e',
   textltilde: '\u026b', textbeltl: '\u026c', textrtaill: '\u026d', textlyoghlig: '\u026e', textOlyoghlig: '\u026e', textscl: '\u029f',
   textltailm: '\u0271', textturnm: '\u026f', textturnmrleg: '\u0270',
   textltailn: '\u0272', ng: '\u014b', textrtailn: '\u0273', textctn: '\u0235', textscn: '\u0274',
@@ -73,7 +74,7 @@ const basicCommandLUT = {
   textphi: '\u0278',
   textfishhookr: '\u027e', textrtailr: '\u027d', textturnr: '\u0279', textturnrrtail: '\u027b', textturnlonglegr: '\u027a', textscr: '\u0280', textinvscr: '\u0281',
   textrtails: '\u0282', textesh: '\u0283',
-  textrtailt: '\u0288', textctt: '\u0236', texttheta: '\u03b8',
+  textrtailt: '\u0288', textturnt: '\u0287', textctt: '\u0236', texttheta: '\u03b8',
   textbaru: '\u0289', textupsilon: '\u028a',
   textscriptv: '\u028b',
   textturnw: '\u028d',
@@ -96,18 +97,43 @@ const basicCommandLUT = {
 class TipaTranspiler {
   constructor() {
     this.result = '';
-    this.state = null;
+    this.lut = null;
   }
 
   addSymbol(sym) {
     this.result += sym;
   }
 
+  processCommand(nm, args) {
+    if (this.lut)
+      throw new Error(`Unexpected command ${nm} after command \\[:;!*]`);
+    if (basicCommandLUT[nm]) {
+      if (args.length != 0)
+        throw new Error(`Command ${nm} should not have any argument, but got ${args.length}`);
+      this.addSymbol(basicCommandLUT[nm]);
+      return;
+    }
+    if (modifierLUT[nm]) {
+      if (args.length != 0)
+        throw new Error(`Command ${nm} should not have any argument, but got ${args.length}`);
+      this.lut = modifierLUT[nm];
+      return;
+    }
+  }
+
   processChar(ch) {
-    const sym = charLUT[ch];
-    if (!sym)
-      throw new Error(`Cannot find shortcut character ${ch}`);
-    this.addSymbol(sym);
+    if (this.lut) {
+      const sym = this.lut[ch];
+      this.lut = null;
+      if (!sym)
+        throw new Error(`Cannot find modified character ${ch}`);
+      this.addSymbol(sym);
+    } else {
+      const sym = basicCharLUT[ch];
+      if (!sym)
+        throw new Error(`Cannot find shortcut character ${ch}`);
+      this.addSymbol(sym);
+    }
   }
 
   take(ast) {
@@ -123,7 +149,8 @@ class TipaTranspiler {
         this.processCommand(ast.name, ast.args);
         return;
       case 'text.string':
-        ast.content.forEach((el) => { this.processChar(el); });
+        [...ast.content].forEach((el) => { this.processChar(el); });
+        return;
       default:
         throw new Error(`Unknown ast kind ${ast.kind}`);
     }
