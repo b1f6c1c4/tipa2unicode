@@ -229,7 +229,7 @@ class TipaTranspiler {
           ')': '\u02d3',
           'c': '\u0311',
           '+': '\u031f',
-          '\'': '\u031d',
+          '\'': '\u02d4',
           '`': '\u031e',
           '<': '\u0318',
           '>': '\u0319',
@@ -251,7 +251,7 @@ class TipaTranspiler {
       case 'textsubplus':
         return f('\u031f');
       case 'textraising':
-        return f('\u031d');
+        return f('\u02d4');
       case 'textlowering':
         return f('\u031e');
       case 'textadvancing':
@@ -393,14 +393,14 @@ class TipaTranspiler {
 
       case 'u':
         if (args.length) {
-          return f('\u02d8');
+          return f('\u0306');
         }
         return s({
-          '': '\u02d8',
-          '=': '\u0304\u02d8',
+          '': '\u0306',
+          '=': '\u0304\u0306',
         });
       case 'textbrevemacron':
-        return f('\u0304\u02d8');
+        return f('\u0304\u0306');
 
       case '=':
         if (args.length) {

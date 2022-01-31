@@ -27,11 +27,9 @@ expect.extend({
           return (
             this.utils.matcherHint('toBeIPA', undefined, undefined, options) +
             '\n\n' +
-            (diffString && diffString.includes('- Expect')
-              ? `Difference:\n\n${diffString}`
-              : `Expected: ${this.utils.printExpected(expected)}\n` +
-                `Received: ${this.utils.printReceived(received)}`)
-          );
+            `Difference:\n\n${diffString}\n` +
+            `Expected: ${this.utils.printExpected(expected)}\n` +
+            `Received: ${this.utils.printReceived(received)}`);
         };
 
     return {actual: received, message, pass};
@@ -107,7 +105,7 @@ test('jfk/humidifier', () => {
 });
 
 test('jfk/mediterranean', () => {
-  expect(tipa2unicode('""mER @R @\\textrhoticity "\\textsubbar{\\u{\\*r}}\\~{\\|`e\\textsubarch{I}}n \\~{i}: \\s{n}\\textcorner{}')).toBeIPA('ˌmɛɾ əɾ ə˞ ˈɹ̠̆ẽ̞ɪ̯̃n ĩː n̩˺');
+  expect(tipa2unicode('""mER @R @\\textrhoticity "\\textsubbar{\\u{\\*r}}\\~{\\|`e}\\~{\\textsubarch{I}}n \\~{i}: \\s{n}\\textcorner{}')).toBeIPA('ˌmɛɾ əɾ ə˞ ˈɹ̠̆ẽ̞ɪ̯̃n ĩː n̩˺');
 });
 
 test('jfk/internationalization', () => {
