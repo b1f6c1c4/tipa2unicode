@@ -36,5 +36,10 @@
   },
   "devDependencies": {
     "jest": "^27.4.7"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "index.js"
+    ]
   }
 }

@@ -143,6 +143,27 @@ const formatAST = /* istanbul ignore next */ (ast) => {
   return ast.kind;
 }
 
+const fancyjoin = (arr, str = '') => {
+  let res = '';
+  for (const a of arr) {
+    let r;
+    if (Array.isArray(a)) {
+      r = fancyjoin(a, str);
+    } else if (typeof a === 'string') {
+      r = a;
+    } else if (a === undefined) {
+      continue;
+    } else /* istanbul ignore next */ {
+      throw new Error(`Internal error in fancyjoin`);
+    }
+    if (res)
+      res += str, res += r;
+    else
+      res = r;
+  }
+  return res;
+};
+
 class TipaTranspiler {
   constructor(debug) {
     // undefined: nothing
@@ -157,7 +178,7 @@ class TipaTranspiler {
   }
 
   processCommand(nm, args) {
-    if (nm === 'relax') return '';
+    if (nm === 'relax') return undefined;
     if (this.debug) /* istanbul ignore next */ {
       console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
@@ -203,7 +224,7 @@ class TipaTranspiler {
       return prefix;
     }
     const f = (sf = '', d = '') => {
-      const rst = checkArg1(nm, args).map((v) => this.take(v)).join(d);
+      const rst = fancyjoin(checkArg1(nm, args).map((v) => this.take(v)), d);
       if (this.debug) /* istanbul ignore next */ {
         console.error(`processCommand(${nm}, args[${args.length}]) f:`, this.debug(prefix), this.debug(rst), this.debug(sf), this.debug(suffix));
       }
@@ -211,10 +232,10 @@ class TipaTranspiler {
     }
     switch (nm) {
       case 'tone':
-        return [...checkArg1s(nm, args)].map((v) => toneLUT[v]).join('');
+        return [...checkArg1s(nm, args)].map((v) => toneLUT[v]);
       case 'super':
       case 'textsuperscript':
-        return [...checkArg1s(nm, args)].map((v) => superLUT[v]).join('');
+        return [...checkArg1s(nm, args)].map((v) => superLUT[v]);
       case 't':
       case 'texttoptiebar':
         return f('', '\u0361');
@@ -463,7 +484,7 @@ class TipaTranspiler {
             return s;
           } else {
             this.lut = s;
-            return '';
+            return undefined;
           }
         }
         if (this.lut['']) this.lut = this.lut[''];
@@ -534,7 +555,7 @@ class TipaTranspiler {
       default:
         throw new Error('Internal error', this.lut);
     }
-    return prefix + ast.content.map((el) => this.take(el)).join('') + suffix;
+    return prefix + fancyjoin(ast.content.map((el) => this.take(el))) + suffix;
   }
 
   take(ast) {
@@ -548,7 +569,7 @@ class TipaTranspiler {
       case 'command':
         return this.processCommand(ast.name, ast.args);
       case 'text.string':
-        return [...ast.content].map((ch) => this.processChar(ch)).join('');
+        return [...ast.content].map((ch) => this.processChar(ch));
       case 'activeCharacter':
         return this.processChar('~');
       case 'space':
@@ -566,7 +587,7 @@ module.exports = (latex, debug) => {
   const ast = latexParser.parse(latex);
   const trans = new TipaTranspiler(debug);
   try {
-    return trans.take(ast)
+    return fancyjoin(trans.take(ast));
   } catch (e) {
     if (debug) /* istanbul ignore next */ {
       console.error(`Erorr ${e.message} when parsing the following AST:`);

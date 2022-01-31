@@ -77,7 +77,7 @@ test('breaks with chars', () => {
 });
 
 test('jfk/squirrel', () => {
-  expect(tipa2unicode('"sk\\super{w}\\r{w}3\\textrhoticity: \\s{\\|~{\\|]l}}')).toBeIPA('ˈskʷẘɜ˞ː ɫ̺̩');
+  expect(tipa2unicode('"sk\\super{w}\\r{w}3\\textrhoticity: \\s{\\|]\\textltilde}')).toBeIPA('ˈskʷẘɜ˞ː ɫ̺̩');
 });
 
 test('jfk/strengthens', () => {
@@ -93,7 +93,7 @@ test('jfk/shenanigans', () => {
 });
 
 test('jfk/homosexual', () => {
-  expect(tipa2unicode('""h\\~{\\|`o}\\~{\\textsubarch{U}}m \\|`o\\textsubarch{U} "sEk\\super{w} S\\super{w}U\\textsubarch{u} \\s{\\|~{\\|]l}}')).toBeIPA('ˌhõ̞ʊ̯̃m o̞ʊ̯ ˈsɛkʷ ʃʷʊu̯ ɫ̺̩');
+  expect(tipa2unicode('""h\\~{\\|`o}\\~{\\textsubarch{U}}m \\|`o\\textsubarch{U} "sEk\\super{w} S\\super{w}U\\textsubarch{u} \\s{\\|]\\textltilde}')).toBeIPA('ˌhõ̞ʊ̯̃m o̞ʊ̯ ˈsɛkʷ ʃʷʊu̯ ɫ̺̩');
 });
 
 test('jfk/Valencia', () => {
@@ -105,7 +105,7 @@ test('jfk/humidifier', () => {
 });
 
 test('jfk/mediterranean', () => {
-  expect(tipa2unicode('""mER @R @\\textrhoticity "\\textsubbar{\\u{\\*r}}\\~{\\|`e}\\~{\\textsubarch{I}}n \\~{i}: \\s{n}\\textcorner{}')).toBeIPA('ˌmɛɾ əɾ ə˞ ˈɹ̠̆ẽ̞ɪ̯̃n ĩː n̩˺');
+  expect(tipa2unicode('""mER @R @\\textrhoticity{} "\\textsubbar{\\u{\\*r}}\\~{\\|`e}\\~{\\textsubarch{I}}n \\~{i}: \\s{n}\\textcorner{}')).toBeIPA('ˌmɛɾ əɾ ə˞ ˈɹ̠̆ẽ̞ɪ̯̃n ĩː n̩˺');
 });
 
 test('jfk/internationalization', () => {
@@ -113,5 +113,5 @@ test('jfk/internationalization', () => {
 });
 
 test('jfk/supercalifragilisticexpialidocious', () => {
-  expect(tipa2unicode('""sU\\textsubarch{u}p \\s{\\textsubbar{\\*r}} ""k\\super{h}\\ae{}\\|~{\\|]l} @ "f\\super{w}\\textsubbar{\\r{\\*r}}\\super{w}\\ae{}\\super{w}\\t{dZ}\\super{w} @ ""\\|]l\\"Ist 9 ""k\\super{h}Ek spi: ""\\ae{}\\|~{\\|]l} @ "d\\|`o\\textsubarch{U}\\super{w}S\\super{w} @s')).toBeIPA('ˌsʊu̯p ɹ̠̩ ˌkʰæɫ̺ ə ˈfʷɹ̠̊ʷæʷd͡ʒʷ ə ˌl̺ɪ̈st ɘ ˌkʰɛk spiː ˌæɫ̺ ə ˈdo̞ʊ̯ʷʃʷ əs');
+  expect(tipa2unicode('""sU\\textsubarch{u}p \\s{\\textsubbar{\\*r}} ""k\\super{h}\\ae{}\\|]\\textltilde{} @ "f\\super{w}\\textsubbar{\\r{\\*r}}\\super{w}\\ae{}\\super{w}\\t{dZ}\\super{w} @ ""\\|]l\\"Ist 9 ""k\\super{h}Ek spi: ""\\ae{}\\|]\\textltilde{} @ "d\\|`o\\textsubarch{U}\\super{w}S\\super{w} @s')).toBeIPA('ˌsʊu̯p ɹ̠̩ ˌkʰæɫ̺ ə ˈfʷɹ̠̊ʷæʷd͡ʒʷ ə ˌl̺ɪ̈st ɘ ˌkʰɛk spiː ˌæɫ̺ ə ˈdo̞ʊ̯ʷʃʷ əs');
 });
