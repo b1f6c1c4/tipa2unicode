@@ -177,8 +177,31 @@ class TipaTranspiler {
     }
   }
 
+  endOfGroup(ar, d = '') {
+    const arr = ar.map((v) => this.take(v));
+    switch (typeof this.lut) {
+      case 'undefined':
+        break;
+      case 'object':
+        if (this.lut['']) this.lut = this.lut[''];
+        else throw new Error('EndOfGroup is not allowed here, as a char is required by LUT');
+        // fallthrough
+      case 'string':
+        arr.push(this.lut);
+        this.isSuffix = false;
+        this.lut = undefined;
+        break;
+      /* istanbul ignore next */
+      default:
+        throw new Error('Internal error', this.lut);
+    }
+    return fancyjoin(arr, d);
+  }
+
   processCommand(nm, args) {
-    if (nm === 'relax') return undefined;
+    if (nm === 'relax') {
+      return args.map((v) => this.take(v));
+    }
     if (this.debug) /* istanbul ignore next */ {
       console.error(`processCommand(${nm}, args[${args.length}]) isSuffix = ${this.isSuffix} lut =`, this.debug(this.lut));
     }
@@ -199,6 +222,7 @@ class TipaTranspiler {
         this.isSuffix = false;
         this.lut = undefined;
         break;
+      /* istanbul ignore next */
       default:
         throw new Error('Internal error', this.lut);
     }
@@ -224,7 +248,7 @@ class TipaTranspiler {
       return prefix;
     }
     const f = (sf = '', d = '') => {
-      const rst = fancyjoin(checkArg1(nm, args).map((v) => this.take(v)), d);
+      const rst = this.endOfGroup(checkArg1(nm, args), d);
       if (this.debug) /* istanbul ignore next */ {
         console.error(`processCommand(${nm}, args[${args.length}]) f:`, this.debug(prefix), this.debug(rst), this.debug(sf), this.debug(suffix));
       }
@@ -246,8 +270,8 @@ class TipaTranspiler {
         return s({
           '[': '\u032a',
           ']': '\u033a',
-          '(': '\u02d2',
-          ')': '\u02d3',
+          '(': '\u02d3',
+          ')': '\u02d2',
           'c': '\u0311',
           '+': '\u031f',
           '\'': '\u02d4',
@@ -394,14 +418,14 @@ class TipaTranspiler {
 
       case 'v':
         if (args.length) {
-          return f('\u02c7');
+          return f('\u030c');
         }
         return s({
-          '': '\u02c7',
-          '\'': '\u02c7\u0301',
+          '': '\u030c',
+          '\'': '\u030c\u0301',
         });
       case 'textacutewedge':
-        return f('\u02c7\u0301');
+        return f('\u030c\u0301');
       case 'v*':
         if (args.length) {
           return f('\u032c');
@@ -508,7 +532,7 @@ class TipaTranspiler {
         '"': '\u02cc',
       };
       if (suffix)
-        return prefix + ' ' + suffix;
+        throw new Error('Stress cannot occur after suffix');
       return prefix;
     }
 
@@ -523,12 +547,17 @@ class TipaTranspiler {
       case 'undefined':
         return ch;
       case 'object':
-        throw new Error('Break is not allowed here');
+        if (this.lut['']) this.lut = this.lut[''];
+        else throw new Error('Break is not allowed here');
+        // fallthrough
       case 'string':
+        if (this.isSuffix)
+          throw new Error('Break cannot occur after suffix');
         const s = this.lut;
         this.isSuffix = false;
         this.lut = undefined;
         return s + ch;
+      /* istanbul ignore next */
       default:
         throw new Error('Internal error', this.lut);
     }
@@ -552,10 +581,11 @@ class TipaTranspiler {
         this.isSuffix = false;
         this.lut = undefined;
         break;
+      /* istanbul ignore next */
       default:
         throw new Error('Internal error', this.lut);
     }
-    return prefix + fancyjoin(ast.content.map((el) => this.take(el))) + suffix;
+    return prefix + this.endOfGroup(ast.content) + suffix;
   }
 
   take(ast) {
@@ -570,6 +600,7 @@ class TipaTranspiler {
         return this.processCommand(ast.name, ast.args);
       case 'text.string':
         return [...ast.content].map((ch) => this.processChar(ch));
+      /* istanbul ignore next */
       case 'activeCharacter':
         return this.processChar('~');
       case 'space':
