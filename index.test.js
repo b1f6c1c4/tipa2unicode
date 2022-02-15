@@ -184,6 +184,9 @@ describe('suffix', () => {
 });
 
 describe('other', () => {
+  test('tilde', () => {
+    expect(tipa2unicode('\\t{t\\|+s\\super{h}}')).toBeIPA('t\u0361s\u031f\u02b0');
+  });
   test('relax', () => {
     expect(tipa2unicode('\\relax{a}')).toBeIPA('a');
   });

@@ -159,7 +159,11 @@ const fancyjoin = (arr, str = '') => {
     } else /* istanbul ignore next */ {
       throw new Error(`Internal error in fancyjoin`);
     }
-    if (res)
+    if (!r)
+      ;
+    else if (r.startsWith('\u200d'))
+      res += r.substr(1);
+    else if (res)
       res += str, res += r;
     else
       res = r;
@@ -262,7 +266,7 @@ class TipaTranspiler {
         return [...checkArg1s(nm, args)].map((v) => toneLUT[v]);
       case 'super':
       case 'textsuperscript':
-        return [...checkArg1s(nm, args)].map((v) => superLUT[v]);
+        return '\u200d' + [...checkArg1s(nm, args)].map((v) => superLUT[v]);
       case 't':
       case 'texttoptiebar':
         return f('', '\u0361');
