@@ -57,6 +57,9 @@ const superLUT = {
   Q: '\u02e4',
   n: '\u207f',
   l: '\u02e1',
+  4: '\u1da3',
+  J: '\u1da8',
+  V: '\u1db9',
 };
 
 const basicCharLUT = {
@@ -270,8 +273,8 @@ class TipaTranspiler {
         return s({
           '[': '\u032a',
           ']': '\u033a',
-          '(': '\u02d3',
-          ')': '\u02d2',
+          '(': '\u031c',
+          ')': '\u0339',
           'c': '\u0311',
           '+': '\u031f',
           '\'': '\u02d4',
@@ -288,9 +291,9 @@ class TipaTranspiler {
       case 'textinvsubbridge':
         return f('\u033a');
       case 'textsubrhalfring':
-        return f('\u02d2');
+        return f('\u0339');
       case 'textsublhalfring':
-        return f('\u02d3');
+        return f('\u031c');
       case 'textroundcap':
         return f('\u0311');
       case 'textsubplus':
