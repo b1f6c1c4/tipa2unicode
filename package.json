@@ -1,6 +1,6 @@
 {
   "name": "tipa2unicode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Convert LaTeX/TIPA to Unicode IPA",
   "main": "index.js",
   "bin": {
